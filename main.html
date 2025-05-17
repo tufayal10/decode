@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Multi Encryption Tool</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', sans-serif;
+      background: linear-gradient(to right, #0f2027, #203a43, #2c5364);
+      color: #fff;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+
+    .container {
+      background: #1e1e2f;
+      padding: 40px;
+      border-radius: 20px;
+      box-shadow: 0 0 20px rgba(0,0,0,0.5);
+      width: 90%;
+      max-width: 600px;
+    }
+
+    h1 {
+      text-align: center;
+      color: #ffcc70;
+    }
+
+    label, select, input, textarea, button {
+      width: 100%;
+      margin-top: 15px;
+      font-size: 1rem;
+    }
+
+    select, input, textarea {
+      padding: 10px;
+      border-radius: 10px;
+      border: none;
+    }
+
+    button {
+      background-color: #ff7e5f;
+      color: #fff;
+      padding: 10px;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+
+    button:hover {
+      background-color: #feb47b;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    .small-btn {
+      width: auto;
+      display: inline-block;
+      margin-top: 10px;
+    }
+
+    .button-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    #userManual {
+      margin-top: 20px;
+      background: #333;
+      padding: 15px;
+      border-radius: 10px;
+      display: none;
+    }
+
+    .input-label-wrapper {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Encryption Tool</h1>
+    <div class="input-label-wrapper">
+      <label for="inputText">Input Text or Numbers:</label>
+      <button class="small-btn" onclick="pasteText()">Paste</button>
+    </div>
+    <textarea id="inputText" rows="4" placeholder="Enter your message..."></textarea>
+
+    <label for="encType">Encryption Type:</label>
+    <select id="encType" onchange="handleEncTypeChange()">
+      <option value="number">Number & Letter Method</option>
+      <option value="key">Key Method</option>
+      <option value="reverse">Reverse Letter Method</option>
+    </select>
+
+    <div id="keyBox" class="hidden">
+      <label for="key">Key (Single Letter):</label>
+      <input type="text" id="key" maxlength="2" />
+    </div>
+
+    <button onclick="encrypt()">Encrypt</button>
+
+    <label for="output">Encrypted Message:</label>
+    <textarea id="output" rows="4" readonly></textarea>
+
+    <div class="button-row">
+      <button class="small-btn" onclick="copyText()">Copy</button>
+      <button class="small-btn" onclick="toggleManual()">User Manual</button>
+    </div>
+
+    <div id="userManual">
+      <h3>Encryption Method Descriptions</h3>
+      <ul>
+        <li><b>Number & Letter Method:</b> Converts letters to numbers (A=01, ..., Z=26) and vice versa. For example, ABC → 010203, and 010203 → ABC. No extra spaces are added or removed.</li>
+        <li><b>Key Method:</b> Shifts letters using Caesar cipher based on a single letter key. E.g., key B: A→B, B→C. Key Z: A→Z, B→A. Negative keys like -B: B→A, C→B. Numeric keys not allowed.</li>
+        <li><b>Reverse Letter Method:</b> A becomes Z, B becomes Y, ..., Z becomes A. Same for lowercase.</li>
+        <li><b>Paste:</b> Pastes the most recently copied text into the input area.</li>
+        <li><b>Copy:</b> Copies the encrypted output.</li>
+      </ul>
+    </div>
+  </div>
+
+  <script>
+    function handleEncTypeChange() {
+      const encType = document.getElementById('encType').value;
+      document.getElementById('keyBox').classList.toggle('hidden', encType !== 'key');
+    }
+
+    function encrypt() {
+      const input = document.getElementById('inputText').value;
+      const encType = document.getElementById('encType').value;
+      const keyInput = document.getElementById('key').value.trim();
+      let output = '';
+
+      if (encType === 'number') {
+        if (/^\d+$/.test(input.replace(/\s/g, ''))) {
+          let i = 0;
+          while (i < input.length) {
+            if (input[i] === ' ') {
+              output += ' ';
+              i++;
+            } else {
+              const numStr = input.substring(i, i + 2);
+              const num = parseInt(numStr, 10);
+              if (num >= 1 && num <= 26) {
+                output += String.fromCharCode(num + 64);
+              } else {
+                output += numStr;
+              }
+              i += 2;
+            }
+          }
+        } else {
+          for (let char of input) {
+            const upperChar = char.toUpperCase();
+            if (upperChar >= 'A' && upperChar <= 'Z') {
+              output += (upperChar.charCodeAt(0) - 64).toString().padStart(2, '0');
+            } else {
+              output += char;
+            }
+          }
+        }
+      }
+
+      else if (encType === 'key') {
+        if (!/^(-?[a-zA-Z])$/.test(keyInput)) {
+          alert("Key must be a single letter or -letter format.");
+          return;
+        }
+
+        let key = 0;
+        if (keyInput.startsWith('-')) {
+          key = -(keyInput[1].toLowerCase().charCodeAt(0) - 97);
+        } else {
+          key = keyInput.toLowerCase().charCodeAt(0) - 97;
+        }
+
+        for (let char of input) {
+          let code = char.charCodeAt(0);
+          if (char >= 'A' && char <= 'Z') {
+            output += String.fromCharCode(((code - 65 + key + 26) % 26) + 65);
+          } else if (char >= 'a' && char <= 'z') {
+            output += String.fromCharCode(((code - 97 + key + 26) % 26) + 97);
+          } else {
+            output += char;
+          }
+        }
+      }
+
+      else if (encType === 'reverse') {
+        for (let char of input) {
+          if (char >= 'A' && char <= 'Z') {
+            output += String.fromCharCode(90 - (char.charCodeAt(0) - 65));
+          } else if (char >= 'a' && char <= 'z') {
+            output += String.fromCharCode(122 - (char.charCodeAt(0) - 97));
+          } else {
+            output += char;
+          }
+        }
+      }
+
+      document.getElementById('output').value = output;
+    }
+
+    function copyText() {
+      const output = document.getElementById('output');
+      navigator.clipboard.writeText(output.value);
+    }
+
+    function pasteText() {
+      navigator.clipboard.readText().then(text => {
+        document.getElementById('inputText').value = text;
+      }).catch(err => {
+        alert("Clipboard permissions denied or not supported.");
+      });
+    }
+
+    function toggleManual() {
+      const manual = document.getElementById('userManual');
+      manual.style.display = manual.style.display === 'none' ? 'block' : 'none';
+    }
+  </script>
+</body>
+  </html>
